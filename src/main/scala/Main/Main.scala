@@ -40,5 +40,10 @@ object Main extends App {
     lazy val t = f()
     if (b) println (t)
   }
-  //my_func(()=>1000000000, b = true)
+  // my_func(()=>1000000000, b = true)
+
+  def initThread(func: () => Unit): Thread = new Thread(() => func())
+
+  initThread(() => println("Hello concurrent")).start()
+  
 }
