@@ -32,6 +32,7 @@ object Main extends App {
   }
 
   /*
+    2
     a) It's arguments are a function that takes no arguments and returns BigInt and a boolean
     b) With lazy the function call won't be evaluated before it's value needs to be evaluated in the print statement
     c) It's helpful to use lazy evaluation when we don't need to unnecessarily evaluate large computations before necessary
@@ -40,10 +41,39 @@ object Main extends App {
     lazy val t = f()
     if (b) println (t)
   }
+
   // my_func(()=>1000000000, b = true)
 
   def initThread(func: () => Unit): Thread = new Thread(() => func())
 
   initThread(() => println("Hello concurrent")).start()
-  
+
+  def fibArray(n: Int): Array[() => Unit] = n match {
+    case 0 => Array(() => println(fib(0)))
+    case _ => Array(() => println(fib(n))) ++ fibArray(n-1)
+  }
+
+  // fibArray(5).foreach(x => x())
+
+  // Maps each lambda in the array to a thread
+  fibArray(5).map(initThread)
+
+  /*
+    3e) The code isn't thread save because it has a side effect which changes the global state.
+        This can influence other threads. To make it thread-safe return the counter + 1 without mutating it.
+        The result is that we lose the global mutable state.
+  */
+  private val counter: Int = 0
+  def increaseCounter(): Int = counter + 1
+
+  /*
+    3f) A deadlock is when process x is waiting for process y to finish and process y is waiting for process x to
+        finish. Which results in a deadlock, meaning that the program will run in an endless loop and never halt.
+        There are several methods to preventing deadlock like:
+          - correct lock ordering
+          - lock timeouts
+          - deadlock detection
+        It's also possible to prevent deadlocks with pure functions. Since pure functions don't have side effects it's
+        always safe to run pure functions in parallel.
+   */
 }
