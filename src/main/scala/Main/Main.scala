@@ -1,6 +1,9 @@
 package Main
 
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
+import scala.concurrent.duration._
 
 object Main extends App {
   var x: Array[Int] = Array()
@@ -62,7 +65,7 @@ object Main extends App {
   fibArray(5).map(initThread)
 
   /*
-    3e) The code isn't thread save because it's not clear what counter state is being referred to when changing it.
+    3e) The code isn't thread save because it's not clear what counter state is being referred to when changing it
         from different threads. To make it thread-safe we can use an AtomicInteger which basically wraps around the
         type of the state to make it clear what state we are returning from the context of the thread.
   */
@@ -81,6 +84,33 @@ object Main extends App {
           - deadlock detection
         It's also possible to prevent deadlocks with pure functions. Since pure functions don't have side effects it's
         always safe to run pure functions in parallel.
-   */
 
+        In this example we define three lazy values in two objects A and B.
+        The A.start val depends on B.step which in turn depends again on A.base.
+        Although there is no cyclic relation here, running this code can lead to a deadlock.
+
+        The deadlock occurs, because the two Future in (1) and (2),
+        when trying to access the lazy val will both lock the respective object A / B,
+        thereby denying any other thread access. In order to achieve progress however,
+        the thread accessing A also needs B.step and the thread accessing B needs to access A.base.
+        This is a deadlock situation.
+   */
+  object A {
+    lazy val base = 42
+    lazy val start: Int = B.step
+  }
+
+  object B {
+    lazy val step: Int = A.base
+  }
+
+  object Scenario {
+    def run: Seq[Int] = {
+      val result = Future.sequence(Seq(
+        Future { A.start },                        // (1)
+        Future { B.step }                          // (2)
+      ))
+      Await.result(result, 1.minute)
+    }
+  }
 }
